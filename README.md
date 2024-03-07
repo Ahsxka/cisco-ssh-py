@@ -8,38 +8,35 @@ This Python script is designed to perform configuration tasks on Cisco IOS devic
 - Provides an interactive mode to select the desired operation.
 - Easy-to-use command-line interface.
 
-## Libraries Used
+## Tested environment
 
-The script utilizes the following Python libraries:
-
-- `color_format`: For colored output in the terminal.
-
-## Python Version Required
-
-This script requires Python 3.x or higher to run.
+The script is developed using Python 3.12 and relies on [Netmiko](https://github.com/ktbyers/netmiko) version 4.3.0.
 
 ## Installation
 
 1. Clone this repository to your local machine:
 ```
-git clone https://github.com/your-username/repository-name.git
+git clone https://github.com/Ahsxka/python-automation.git
 ```
 
 2. Navigate to the project directory:
 ```
-cd repository-name
+cd python-automation
 ```
 
-3. Create a python venv for this project:
-```
-python3 -m venv ciscopy
-```
-
-4. Install the required dependencies:
+3. Install the required dependencies:
 ```
 pip install -r requirements.txt
 ```
 
-5. You´re ready to go !
+4. You´re ready to go !
+
+> [!NOTE]
+> It is recommended to use a *[virtual environment](https://docs.python.org/3/library/venv.html)* to avoid dependency conflicts.
 
 
+## Using Cisco IOS SSH automation
+
+```
+python cisco-ssh.py
+```
