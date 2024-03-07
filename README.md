@@ -45,7 +45,7 @@ pip install -r requirements.txt
 > It is recommended to use a *[virtual environment](https://docs.python.org/3/library/venv.html)* to avoid dependency conflicts.
 
 
-## Using Cisco IOS SSH automation
+## Using cisco-ssh.py
 1. Execute `cisco-ssh.py` :
 ```
 python cisco-ssh.py
