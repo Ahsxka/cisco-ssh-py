@@ -12,6 +12,9 @@ This Python script is designed to perform configuration tasks on Cisco IOS devic
 
 ## Use case
 
+<img align="right" width=60px src=https://github.com/Ahsxka/python-automation/assets/162576190/00468e89-15ce-4ed9-b44e-ba91a77a8fa5></img>
+
+
 - Configuring multiple cisco IOS equipments with the same configuration
 - Saving show commands _(e.g. show tech-support)_ from multiple equipments
 
