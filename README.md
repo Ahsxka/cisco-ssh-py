@@ -1,3 +1,5 @@
+<img width=60px align="right" src="https://github.com/Ahsxka/python-automation/assets/162576190/2c3398bb-f9bf-4a28-9873-ea1d80310888"></img>
+
 # Cisco IOS SSH automation
 
 This Python script is designed to perform configuration tasks on Cisco IOS devices. It reads commands from a file and executes them on the specified devices.
