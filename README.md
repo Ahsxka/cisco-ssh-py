@@ -8,6 +8,11 @@ This Python script is designed to perform configuration tasks on Cisco IOS devic
 - Provides an interactive mode to select the desired operation.
 - Easy-to-use command-line interface.
 
+## Use case
+
+- Configuring multiple cisco IOS equipments with the same configuration
+- Saving show commands _(e.g. show tech-support)_ from multiple equipments
+
 ## Tested environment
 
 The script is developed using Python 3.12 and relies on [Netmiko](https://github.com/ktbyers/netmiko) version 4.3.0.
@@ -41,26 +46,38 @@ pip install -r requirements.txt
 python cisco-ssh.py
 ```
 
-2. Choose an IP file :
+2. Choose an IP file _(should be **1 IP per line**)_ :
+
 <img width="600" alt="image" src="https://github.com/Ahsxka/python-automation/assets/162576190/8daa9435-e41b-47c8-9e2c-744d5735486a">
 
 3. Choose an export folder, where the `.log` files will be saved :
+
 <img width="600" alt="image" src="https://github.com/Ahsxka/python-automation/assets/162576190/aa727361-778f-4843-b949-53ccd17e8435">
 
-4. Choose between the 2 modes : Show commands or Config commands :
+4. Choose between the 2 modes : **Show commands** or **Config commands** :
 
-5. Choosing the Show commands mode :
+<img width="600" alt="image" src="https://github.com/Ahsxka/python-automation/assets/162576190/fe46c641-48a0-4d2a-b228-7c47799ef69b">
+
+
+5. Choosing the Show commands mode, you're prompted to choose the command you want to use. If you want to use another show command, you have to write the whole command, **without shortcut** :
+
+<img width="600" alt="image" src="https://github.com/Ahsxka/python-automation/assets/162576190/c5f9fa6a-fe41-4b13-88a6-7c60f05d0185">
 
   
-6. Choosing the Config commands mode :
+6. Choosing the Config commands mode, you're prompted to choose the configuration file you want to import :
 
 <img width="600" alt="image" src="https://github.com/Ahsxka/python-automation/assets/162576190/e2e5d302-fc36-44d0-bd0e-8ce2ed2d7bda">
 
-7. Verifying settings
+7. Enter username, password (and enable password) of your cisco equipement, and if you want the script to enter in verbose mode :
 
-<img width="492" alt="image" src="https://github.com/Ahsxka/python-automation/assets/162576190/4c443a1b-7db2-4b98-a831-8153f92d14ca">
+<img width="450" alt="image" src="https://github.com/Ahsxka/python-automation/assets/162576190/65b3a433-86cc-42b3-aea4-9348d504a573">
 
+7. Last step is verifying your settings.
 
+<img width="450" alt="image" src="https://github.com/Ahsxka/python-automation/assets/162576190/4c443a1b-7db2-4b98-a831-8153f92d14ca">
+
+>[!WARNING]
+> Be sure that everything is fine before executing this last part !!!!
 
 
 <!--<img width="303" alt="image" src="https://github.com/Ahsxka/python-automation/assets/162576190/de3b3e00-9a7f-4863-bc4f-1da49f4bf84f">-->
