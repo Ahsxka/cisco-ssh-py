@@ -1,4 +1,7 @@
-<img width=60px align="right" src="https://github.com/Ahsxka/python-automation/assets/162576190/2c3398bb-f9bf-4a28-9873-ea1d80310888"></img>
+![Ahsxka-cisco-ssh-py](https://github.com/Ahsxka/cisco-ssh-py/assets/162576190/bd480cdc-abd1-4954-b16c-a3399492638c)
+
+
+<img width=55px align="right" src="https://github.com/Ahsxka/python-automation/assets/162576190/2c3398bb-f9bf-4a28-9873-ea1d80310888"></img>
 
 # Cisco IOS SSH automation
 
@@ -8,6 +11,7 @@ This Python script is designed to perform configuration tasks on Cisco IOS devic
 ## Features
 
 - Supports configuration of Cisco IOS devices.
+
 - Provides an interactive mode to select the desired operation.
 - Easy-to-use command-line interface.
 
