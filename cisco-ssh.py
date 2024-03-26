@@ -91,7 +91,10 @@ def execute_commands(ip, username, password, secret, commands, verbose, mode, ex
         # Create SSH connection, and elevate to enable user
         client = ConnectHandler(ip=ip, username=username, password=password, device_type="cisco_ios", secret=secret)
         prompt = client.find_prompt()[:-1]
-        client.enable()
+        if not client.check_enable_mode():
+            color_format.print_info(f"Upgrading to enable mode on host {ip}")
+            client.enable()
+
         if verbose == "y":
             color_format.print_info(f"Enable Mode {client.check_enable_mode()}")
 
@@ -110,8 +113,22 @@ def execute_commands(ip, username, password, secret, commands, verbose, mode, ex
                     if verbose == "y":
                         color_format.print_info(f"Executing command : {command}")
 
-                    # Sending command with a timeout of 120 sec :
-                    result = client.send_command(command, expect_string=prompt, read_timeout=120)
+                    if r"\n" in command:
+                        command = command.replace(r"\n", "")
+                        cmd_list = [
+                            [f"{command}", r"confirm"],
+                            ["\n", r""],
+                        ]
+                        if verbose == "y":
+                            print(cmd_list)
+                        try:
+                            result = client.send_multiline(cmd_list, expect_string=prompt)
+                        except:
+                            result = "None"
+
+                    else:
+                        result = client.send_command(command, expect_string=prompt, read_timeout=120)
+
                     output += f"Command executed : {command}\n"
 
                     if result:
@@ -175,11 +192,11 @@ def inicio(ip_list, commands_list, mode, ip_file, export_folder, command_file):
     # SSH creds
     username = input("Username : ")
     password = input("Password : ")
-    secret = input("Secret (leave blank if same as password or no need of enable) :")
+    secret = input("Secret (leave blank if same as password or no need of enable) : ")
     if len(secret) == 0:
         secret = password
     print(f"{80 * "-"}")
-    verbose = str(input("Verbose mode [y/N] : ")).lower()  # verbose = "y"  #
+    verbose = str(input("Verbose mode [y/N] : ")).lower()
     if not verbose:
         verbose = 'n'
     print(f"{80 * "-"}")
