@@ -1,8 +1,10 @@
+import csv
+import json
 import sys
 import tkinter as tk
 from tkinter import filedialog
 import datetime
-from netmiko import ConnectHandler
+from netmiko import ConnectHandler, NetMikoTimeoutException, NetMikoAuthenticationException
 import os
 
 
@@ -56,13 +58,28 @@ def choose_file():
 
 
 def read_file(file_name):  # returns a list containing each line of a given file.
+    encoding = get_encoding(file_name)
     if len(file_name) != 0:
         lines = []
-        with open(file_name, 'r') as f:
+        with open(file_name, 'r', encoding=encoding) as f:
             for line in f:
                 lines.append(line.strip())
         if len(lines) != 0:
             return lines
+
+
+def get_encoding(file_path):
+    encodings_to_try = ['utf-8', 'windows-1252', 'latin-1', 'ISO-8859-1', 'UTF-16', 'cp1252', 'ascii', 'mac_roman']
+    for encoding in encodings_to_try:
+        try:
+            with open(file_path, newline='', encoding=encoding) as csvfile:
+                csv.DictReader(csvfile)
+                for row in csvfile:  # Very important to keep this line for the test to occur
+                    pass
+            color_format.print_success(f"Opening '{file_path}' with encoding '{encoding}'.")
+            return encoding
+        except (UnicodeDecodeError, UnicodeError):
+            color_format.print_warning(f"Failed to open '{file_path}' with encoding '{encoding}'.")
 
 
 def version(basename, mode, command):  # return an incremental file name, according to existing files in directory
@@ -84,12 +101,59 @@ def version(basename, mode, command):  # return an incremental file name, accord
 
 # MAIN FUNCTION : EXECUTING COMMANDS
 
-def execute_commands(ip, username, password, secret, commands, verbose, mode, export_folder):
-    try:
+def execute_commands(ip, creds_list, commands, verbose, mode, export_folder):
+    errors = 0
+    connected = False
+    client = None
+    basename = f'{export_folder}/{ip}.log'
+    new_filename = version(basename, mode, commands)
+    err = []
 
-        errors = 0
-        # Create SSH connection, and elevate to enable user
-        client = ConnectHandler(ip=ip, username=username, password=password, device_type="cisco_ios", secret=secret)
+    for cred in creds_list:
+        username = cred['username']
+        password = cred['password']
+        enable = cred['enable']
+
+        if not connected:
+            try:
+                client = ConnectHandler(ip=ip, username=username, password=password, device_type="cisco_ios",
+                                        secret=enable)
+                color_format.print_success(f"Connected to host {ip} with credentials '{username} : {password}'. ")
+                connected = True
+            except NetMikoTimeoutException as e:
+                err = f"Timeout error: {e}"
+                color_format.print_error(err)
+                break
+
+            except NetMikoAuthenticationException as e:
+                err.append(f"{username} : {password}")
+                if verbose == "y":
+                    print(f"Failed to connect with credentials : '{username} : {password}'")
+
+            except Exception as e:
+                err = f"Connection error with host {ip}: {e}"
+                if verbose == "y":
+                    color_format.print_error(err)
+
+    if not connected:
+        color_format.print_error(f"Failed to connect to host {ip}.")
+        with open(new_filename, 'w', encoding='utf-8') as f:
+            f.write(f"Hostname        : Unable to connect\n")
+            f.write(f"IP address      : {ip}\n")
+            f.write(f"Execution start : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Execution end   : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Total number of commands: 0\n")
+            f.write(f"Number of failed commands: 0\n\n")
+            tipo = type(err)
+            if tipo == list:
+                f.write(f"Failed to connect with credentials :\n")
+                for elt in err:
+                    f.write(f"{elt}\n")
+            elif tipo == str:
+                f.write(err)
+        return errors + 1
+
+    try:
         prompt = client.find_prompt()[:-1]
         if not client.check_enable_mode():
             color_format.print_info(f"Upgrading to enable mode on host {ip}")
@@ -98,10 +162,8 @@ def execute_commands(ip, username, password, secret, commands, verbose, mode, ex
         if verbose == "y":
             color_format.print_info(f"Enable Mode {client.check_enable_mode()}")
 
-        basename = f'{export_folder}/{ip}.log'
-        new_filename = version(basename, mode, commands)
         with open(new_filename, 'w', encoding='utf-8') as f:
-
+            # Write log information
             f.write(f"Hostname        : {prompt}\n")
             f.write(f"IP address      : {ip}\n")
             f.write(f"Execution start : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -156,7 +218,7 @@ def execute_commands(ip, username, password, secret, commands, verbose, mode, ex
                     if verbose == "y":
                         result_lines = result.splitlines()
                         for line in result_lines[:10]:  # print only the first 10 lines of the result
-                                print(line)
+                            print(line)
                         print(f"\n[Output omitted......]")
                     output += f"\nresult : \n{result}\n\n"
 
@@ -166,36 +228,23 @@ def execute_commands(ip, username, password, secret, commands, verbose, mode, ex
                             or result.__contains__("Ambiguous command"):
                         errors += 1
 
-            # Writing log info :
-            f.write(f"Execution end   : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"Total number of commands: {total_commands}\n")
-            f.write(f"Number of failed commands: {errors}\n\n")
-            f.write(f"{80 * "-"}")
-            f.write(f"\n\n{output}")
-
-            client.disconnect()
-
-        if errors == 0:
-            color_format.print_success(f"Successfully executed commands on host {ip}.")
-        elif errors == len(commands):
-            color_format.print_error(f"All commands failed. Please verify the commands in your file and try again.")
-        else:
-            color_format.print_warning(f"Successfully executed commands on host {ip} but {errors} error(s) found.")
+                    # Write log information
+                    f.write(f"Execution end   : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                    f.write(f"Total number of commands: {total_commands}\n")
+                    f.write(f"Number of failed commands: {errors}\n\n")
+                    f.write(f"{80 * '-'}\n\n{output}")
 
     except Exception as e:
-        color_format.print_error((f"Connection error with host {ip} : {str(e)}"))
+        color_format.print_error(f"Error during command execution on host {ip}: {e}")
+
+    finally:
+        if client:
+            client.disconnect()
 
     return errors
 
 
-def inicio(ip_list, commands_list, mode, ip_file, export_folder, command_file):
-    # SSH creds
-    username = input("Username : ")
-    password = input("Password : ")
-    secret = input("Secret (leave blank if same as password or no need of enable) : ")
-    if len(secret) == 0:
-        secret = password
-    print(f"{80 * "-"}")
+def inicio(ip_list, commands_list, mode, ip_file, export_folder, creds_list, command_file):
     verbose = str(input("Verbose mode [y/N] : ")).lower()
     if not verbose:
         verbose = 'n'
@@ -203,10 +252,9 @@ def inicio(ip_list, commands_list, mode, ip_file, export_folder, command_file):
     color_format.print_info("Current settings :")
     print("Verbose mode : on" if verbose == "y" else "Verbose mode : off")
     print(f"IP file      : {ip_file}")
-    print(f"Command file : {command_file}\n               {len(commands_list)} commands to run." if mode == "config" else f"Command      : {commands_list}")
+    print(
+        f"Command file : {command_file}\n               {len(commands_list)} commands to run." if mode == "config" else f"Command      : {commands_list}")
     print(f"Export folder: {export_folder}")
-    print(f"Username     : {username}")
-    print(f"Password     : {password}")
 
     print(f"{80 * "-"}")
     color_format.print_warning("Do you want to continue with these settings? [y/N] : ", end="")
@@ -217,8 +265,8 @@ def inicio(ip_list, commands_list, mode, ip_file, export_folder, command_file):
         # Execute commands on each @IP
         error_total = 0
         for ip in ip_list:
-            print(f"Executing Commands on host {ip}...")
-            error_total += execute_commands(ip, username, password, secret, commands_list, verbose, mode, export_folder)
+            print(f"Connecting to host {ip}...")
+            error_total += execute_commands(ip, creds_list, commands_list, verbose, mode, export_folder)
             print("\n")
         if error_total != 0:
             print(f"{80 * "-"}\n")
@@ -239,9 +287,31 @@ def main():
         if not ip_list:
             color_format.print_error("Empty IP file. Please provide a valid IP file.")
             sys.exit(1)
-
         print(f"{80 * "-"}")
-        print(f"Please select export folder:")
+        print("Choose a password file : ")
+        user_pass_file = choose_file()
+
+        creds_list = []
+
+        with open(user_pass_file, "r", encoding=get_encoding(user_pass_file)) as f:
+            rows = csv.DictReader(f)
+            for row in rows:
+                creds = {}
+                try:
+                    creds['username'] = row['username']
+                except KeyError:
+                    print("No username found")
+                try:
+                    creds['password'] = row['password']
+                except KeyError:
+                    print("No password found")
+                try:
+                    creds['enable'] = row['enable']
+                except KeyError:
+                    print("No enable found")
+                creds_list.append(creds)
+        print(f"{80 * "-"}")
+        print(f"Please select export folder: ")
         export_folder = choose_folder()
         export_folder = export_folder + "/" if export_folder else ""
 
@@ -259,7 +329,6 @@ def main():
                 print(f"{80 * "-"}")
             else:
                 break
-
 
         if mode == "1":
             while True:
@@ -287,10 +356,11 @@ def main():
                     if choice == list(commands_map.keys())[-1]:
                         break
                     else:
-                        inicio(ip_list, commands_map[choice], "show", ip_file, export_folder, command_file="")
+                        inicio(ip_list, commands_map[choice], "show", ip_file, export_folder, creds_list,
+                               command_file="")
 
                 elif choice.startswith("show"):
-                    inicio(ip_list, choice, "show", ip_file, export_folder, command_file="")
+                    inicio(ip_list, choice, "show", ip_file, export_folder, creds_list, command_file="")
 
                 else:
                     color_format.print_warning("No command specified: Please select a valid option")
@@ -306,8 +376,9 @@ def main():
                 commands_list = read_file(command_file)
                 for command in commands_list:
                     if command.__contains__("sh") and not command.__contains__("shut"):
-                        color_format.print_warning(r"One or multiple 'show' command(s) detected. Please remove them from your command file or considere using the show option")
-                inicio(ip_list, commands_list, "config", ip_file, export_folder, command_file)
+                        color_format.print_warning(
+                            r"One or multiple 'show' command(s) detected. Please remove them from your command file or considere using the show option")
+                inicio(ip_list, commands_list, "config", ip_file, export_folder, creds_list, command_file)
         elif mode == "3":
             print("Exiting program...")
             break
