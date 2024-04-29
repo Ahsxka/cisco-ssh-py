@@ -285,6 +285,36 @@ def inicio(ip_list, commands_list, mode, ip_file, export_folder, creds_list, use
     print(f"{80 * "-"}")
 
 
+def inicio_gui(ip_list, user_pass_file, commands_list, verbose, mode, export_folder):
+    error_total = 0
+    creds_list = []
+
+    with open(user_pass_file, "r", encoding=get_encoding(user_pass_file)) as f:
+        rows = csv.DictReader(f)
+        for row in rows:
+            creds = {}
+            try:
+                creds['username'] = row['username']
+            except KeyError:
+                print("No username found")
+            try:
+                creds['password'] = row['password']
+            except KeyError:
+                print("No password found")
+            try:
+                creds['enable'] = row['enable']
+            except KeyError:
+                print("No enable found")
+            creds_list.append(creds)
+    for ip in ip_list:
+        print(f"Connecting to host {ip}...")
+        error_total += execute_commands(ip, creds_list, commands_list, verbose, mode, export_folder)
+        print("\n")
+    if error_total != 0:
+        print(f"{80 * "-"}\n")
+        color_format.print_warning(f"{error_total} error(s) detected. See log for full detail.")
+
+
 def main():
     while True:
         print("\nChoose an IP file, one IP per line :")
