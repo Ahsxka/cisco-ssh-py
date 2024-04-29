@@ -1,5 +1,4 @@
 import csv
-import json
 import sys
 import tkinter as tk
 from tkinter import filedialog
@@ -105,8 +104,6 @@ def execute_commands(ip, creds_list, commands, verbose, mode, export_folder):
     errors = 0
     connected = False
     client = None
-    basename = f'{export_folder}/{ip}.log'
-    new_filename = version(basename, mode, commands)
     err = []
 
     for cred in creds_list:
@@ -137,6 +134,8 @@ def execute_commands(ip, creds_list, commands, verbose, mode, export_folder):
 
     if not connected:
         color_format.print_error(f"Failed to connect to host {ip}.")
+        basename = f'{export_folder}/{ip}.log'
+        new_filename = version(basename, mode, commands)
         with open(new_filename, 'w', encoding='utf-8') as f:
             f.write(f"Hostname        : Unable to connect\n")
             f.write(f"IP address      : {ip}\n")
@@ -155,6 +154,10 @@ def execute_commands(ip, creds_list, commands, verbose, mode, export_folder):
 
     try:
         prompt = client.find_prompt()[:-1]
+
+        basename = f'{export_folder}/{prompt}.log'
+        new_filename = version(basename, mode, commands)
+
         if not client.check_enable_mode():
             color_format.print_info(f"Upgrading to enable mode on host {ip}")
             client.enable()
@@ -205,6 +208,11 @@ def execute_commands(ip, creds_list, commands, verbose, mode, export_folder):
                                 or result.__contains__("Ambiguous command"):
                             errors += 1
 
+                    f.write(f"Execution end   : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                    f.write(f"Total number of commands: {total_commands}\n")
+                    f.write(f"Number of failed commands: {errors}\n\n")
+                    f.write(f"{80 * '-'}\n\n{output}")
+
             if mode == "show":
                 total_commands = 1
                 command = commands
@@ -244,7 +252,7 @@ def execute_commands(ip, creds_list, commands, verbose, mode, export_folder):
     return errors
 
 
-def inicio(ip_list, commands_list, mode, ip_file, export_folder, creds_list, command_file):
+def inicio(ip_list, commands_list, mode, ip_file, export_folder, creds_list, user_pass_file, command_file):
     verbose = str(input("Verbose mode [y/N] : ")).lower()
     if not verbose:
         verbose = 'n'
@@ -252,6 +260,7 @@ def inicio(ip_list, commands_list, mode, ip_file, export_folder, creds_list, com
     color_format.print_info("Current settings :")
     print("Verbose mode : on" if verbose == "y" else "Verbose mode : off")
     print(f"IP file      : {ip_file}")
+    print(f"Password file: {user_pass_file}")
     print(
         f"Command file : {command_file}\n               {len(commands_list)} commands to run." if mode == "config" else f"Command      : {commands_list}")
     print(f"Export folder: {export_folder}")
@@ -356,11 +365,11 @@ def main():
                     if choice == list(commands_map.keys())[-1]:
                         break
                     else:
-                        inicio(ip_list, commands_map[choice], "show", ip_file, export_folder, creds_list,
+                        inicio(ip_list, commands_map[choice], "show", ip_file, export_folder, creds_list, user_pass_file,
                                command_file="")
 
                 elif choice.startswith("show"):
-                    inicio(ip_list, choice, "show", ip_file, export_folder, creds_list, command_file="")
+                    inicio(ip_list, choice, "show", ip_file, export_folder, creds_list, user_pass_file, command_file="")
 
                 else:
                     color_format.print_warning("No command specified: Please select a valid option")
@@ -378,7 +387,7 @@ def main():
                     if command.__contains__("sh") and not command.__contains__("shut"):
                         color_format.print_warning(
                             r"One or multiple 'show' command(s) detected. Please remove them from your command file or considere using the show option")
-                inicio(ip_list, commands_list, "config", ip_file, export_folder, creds_list, command_file)
+                inicio(ip_list, commands_list, "config", ip_file, export_folder, creds_list, user_pass_file, command_file)
         elif mode == "3":
             print("Exiting program...")
             break
